@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams, useOutletContext } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowDownAZ, ArrowUpAZ, ChevronLeft, ChevronRight, GitCompare, Search, SlidersHorizontal } from 'lucide-react'
+import { ArrowDownAZ, ArrowUpAZ, ChevronLeft, ChevronRight, Search, SlidersHorizontal } from 'lucide-react'
 import { mockApi } from '../../services/mockApi'
 import { CATEGORIES } from '../../constants/categories'
 import ProductCard from '../../components/shared/ProductCard'
@@ -18,7 +18,6 @@ export default function CatalogPage() {
   const [dataVersion, setDataVersion] = useState(0)
   const [categories, setCategories] = useState(() => getStored('nour_categories', CATEGORIES.filter((item) => item !== 'جميع المنتجات')))
   const [favorites, setFavorites] = useState(() => getStored('nour_favorites', []))
-  const [compare, setCompare] = useState(() => getStored('nour_compare', []))
   const { data: seed = [], isLoading, error } = useQuery({ queryKey: ['products'], queryFn: mockApi.products })
   useEffect(() => {
     const refresh = () => {
@@ -62,13 +61,6 @@ export default function CatalogPage() {
     const next = favorites.includes(id) ? favorites.filter((item) => item !== id) : [...favorites, id]
     setFavorites(next); localStorage.setItem('nour_favorites', JSON.stringify(next))
   }
-  const toggleCompare = (product) => {
-    if (compare.includes(product.id)) {
-      const next = compare.filter((id) => id !== product.id); setCompare(next); localStorage.setItem('nour_compare', JSON.stringify(next)); return
-    }
-    if (compare.length === 4) { toast.error('يمكن مقارنة 4 منتجات كحد أقصى'); return }
-    const next = [...compare, product.id]; setCompare(next); localStorage.setItem('nour_compare', JSON.stringify(next)); toast.success('أضيف المنتج للمقارنة')
-  }
   if (isLoading) return <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{Array.from({length:8},(_,i)=><div key={i} className="h-72 animate-pulse rounded-2xl bg-gray-200" />)}</div>
   if (error) return <p role="alert" className="rounded-xl bg-rose-50 p-4 text-rose-700">تعذر تحميل المنتجات. حاول تحديث الصفحة.</p>
   return <div>
@@ -84,10 +76,7 @@ export default function CatalogPage() {
         <span className="hidden text-gray-400 sm:inline">{sort === 'name' ? <ArrowDownAZ size={18} /> : <ArrowUpAZ size={18} />}</span>
       </div>
     </div>
-    <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">{filtered.slice((page - 1) * 12, page * 12).map((product) => <div key={product.id} className="relative">
-      <ProductCard product={product} favorite={favorites.includes(product.id)} onFavorite={toggleFavorite} />
-      <button onClick={() => toggleCompare(product)} title="مقارنة" className={`absolute bottom-20 right-3 rounded-full p-2 ${compare.includes(product.id) ? 'bg-primary text-white' : 'bg-white text-gray-500 shadow'}`}><GitCompare size={15} /></button>
-    </div>)}</div>
+    <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">{filtered.slice((page - 1) * 12, page * 12).map((product) => <ProductCard key={product.id} product={product} favorite={favorites.includes(product.id)} onFavorite={toggleFavorite} />)}</div>
     {!filtered.length && <div className="rounded-xl bg-white p-10 text-center text-gray-500"><SlidersHorizontal className="mx-auto mb-2" />لا توجد منتجات مطابقة.</div>}
     <nav aria-label="التنقل بين صفحات المنتجات" className="mt-9 flex w-full flex-wrap items-center justify-center gap-2">
       <button
@@ -177,6 +166,5 @@ export default function CatalogPage() {
         </button>
       </form>
     </nav>
-    {compare.length > 0 && <a href="/compare" className="fixed bottom-5 left-5 z-20 rounded-full bg-ink px-5 py-3 text-sm font-bold text-white shadow-lg">قارن المنتجات ({compare.length})</a>}
   </div>
 }

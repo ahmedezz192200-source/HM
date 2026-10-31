@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
-import { AlertTriangle, Check, Download, Package, Plus, Save, Trash2, Users } from 'lucide-react'
+import { AlertTriangle, Check, ClipboardList, Download, Package, Plus, Save, ShieldCheck, Trash2, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { mockApi } from '../../services/mockApi'
 import { useAuth } from '../../context/AuthContext'
@@ -32,14 +32,40 @@ function DataTable({ columns, data }) {
 
 function Dashboard({ users, products, orders }) {
   const activeOrders = orders.filter(o=>!['delivered','cancelled'].includes(o.status))
+  const pendingOrders = orders.filter(o=>o.status==='pending')
+  const activeClients = users.filter(user=>user.status==='active')
   const lowStock = products.filter(isLowStock)
+  const confirmedRevenue = orders.filter(order=>['confirmed','shipped','delivered'].includes(order.status)).reduce((sum,order)=>sum+Number(order.total||0),0)
   const stats = [
-    {label:'إجمالي الطلبات',value:orders.length,Icon:Package,to:'/admin/orders',filter:'all'},
-    {label:'طلبات تحتاج متابعة',value:activeOrders.length,Icon:AlertTriangle,to:'/admin/orders',filter:'follow-up'},
-    {label:'عملاء بانتظار الموافقة',value:users.filter(u=>u.status==='pending').length,Icon:Users,to:'/admin/users',filter:'pending'},
-    {label:'مخزون منخفض',value:lowStock.length,Icon:AlertTriangle,to:'/admin/products',filter:'low-stock'},
+    {label:'إجمالي الطلبات',value:orders.length,note:'كل الطلبات المسجلة',Icon:Package,to:'/admin/orders',filter:'all',tone:'bg-sky-50 text-sky-700'},
+    {label:'طلبات قيد التنفيذ',value:activeOrders.length,note:`منها ${pendingOrders.length} بانتظار المراجعة`,Icon:ClipboardList,to:'/admin/orders',filter:'follow-up',tone:'bg-amber-50 text-amber-700'},
+    {label:'العملاء النشطون',value:activeClients.length,note:`${users.filter(user=>user.status==='pending').length} طلبات انضمام جديدة`,Icon:Users,to:'/admin/users',filter:'pending',tone:'bg-emerald-50 text-emerald-700'},
+    {label:'مخزون منخفض',value:lowStock.length,note:'منتجات تحتاج إلى متابعة',Icon:AlertTriangle,to:'/admin/products',filter:'low-stock',tone:'bg-rose-50 text-rose-700'},
   ]
-  return <><h1 className="mb-6 text-2xl font-extrabold">لوحة التحكم</h1><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{stats.map(({label,value,Icon,to,filter})=><Link key={label} to={`${to}?filter=${filter}`} aria-label={`${label}: ${value}`} className={`${card} block transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary`}><div className="flex justify-between text-gray-500"><span>{label}</span><Icon size={19} className="text-primary"/></div><p className="mt-4 text-3xl font-extrabold">{value}</p><span className="mt-2 block text-xs text-primary-dark">عرض التفاصيل ←</span></Link>)}</div><div className="mt-6 grid gap-5 lg:grid-cols-2"><section className={card}><h2 className="mb-4 font-bold">آخر الطلبات</h2>{orders.slice(0,5).map(o=><div key={o.id} className="flex justify-between border-t py-3 text-sm"><span>{o.id} · {o.clientName}</span><span>{orderNames[o.status]}</span></div>)}</section><section className={card}><h2 className="mb-4 font-bold">مخزون منخفض</h2>{lowStock.slice(0,6).map(p=><div key={p.id} className="flex justify-between border-t py-3 text-sm"><span>{p.name}</span><span className="text-amber-700">{p.stock} قطع</span></div>)}{!lowStock.length&&<p className="text-sm text-gray-500">لا توجد منتجات منخفضة المخزون.</p>}</section></div></>
+  return <div className="space-y-6">
+    <header className="flex flex-wrap items-end justify-between gap-3 rounded-2xl bg-gradient-to-l from-primary/15 via-white to-white p-6">
+      <div><p className="text-sm font-bold text-primary-dark">نظرة عامة على نشاط المتجر</p><h1 className="mt-1 text-2xl font-extrabold">لوحة التحكم</h1><p className="mt-2 text-sm text-gray-500">تابع الطلبات والعملاء وحالة المخزون من مكان واحد.</p></div>
+      <p className="text-sm text-gray-500">{new Intl.DateTimeFormat('ar-EG',{dateStyle:'full'}).format(new Date())}</p>
+    </header>
+    <section aria-label="إحصائيات المتجر" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {stats.map(({label,value,note,Icon,to,filter,tone})=><Link key={label} to={`${to}?filter=${filter}`} aria-label={`${label}: ${value}`} className={`${card} block transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary`}>
+        <div className="flex items-start justify-between gap-3"><div><p className="text-sm text-gray-500">{label}</p><p className="mt-3 text-3xl font-extrabold">{value}</p></div><span className={`rounded-xl p-3 ${tone}`}><Icon size={21}/></span></div>
+        <p className="mt-3 text-xs text-gray-500">{note}</p><span className="mt-4 block text-xs font-bold text-primary-dark">عرض التفاصيل ←</span>
+      </Link>)}
+    </section>
+    <section className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
+      <div className={card}>
+        <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="font-extrabold">أحدث الطلبات</h2><p className="mt-1 text-xs text-gray-500">آخر الطلبات المسجلة على المتجر</p></div><Link to="/admin/orders" className="text-sm font-bold text-primary-dark">كل الطلبات</Link></div>
+        {orders.length ? <div className="overflow-x-auto"><table className="w-full min-w-[480px] text-right text-sm"><thead className="text-xs text-gray-500"><tr><th className="py-3">رقم الطلب</th><th className="py-3">العميل</th><th className="py-3">الإجمالي</th><th className="py-3">الحالة</th></tr></thead><tbody>{orders.slice(0,6).map(order=><tr key={order.id} className="border-t"><td className="py-3 font-bold">{order.id}</td><td className="py-3">{order.clientName}</td><td className="py-3">{formatCurrency(order.total)}</td><td className="py-3"><span className="whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-1 text-xs">{orderNames[order.status]||order.status}</span></td></tr>)}</tbody></table></div> : <p className="rounded-xl bg-gray-50 p-6 text-center text-sm text-gray-500">لا توجد طلبات حتى الآن.</p>}
+      </div>
+      <div className="space-y-5">
+        <section className="rounded-2xl bg-ink p-5 text-white shadow-soft"><div className="flex items-center gap-3"><span className="rounded-xl bg-white/10 p-3 text-primary"><ShieldCheck size={21}/></span><div><p className="text-sm text-white/70">قيمة الطلبات المؤكدة وما بعدها</p><p className="mt-1 text-2xl font-extrabold">{formatCurrency(confirmedRevenue)}</p></div></div><p className="mt-4 text-xs text-white/60">محسوبة للطلبات المؤكدة أو المشحونة أو التي تم تسليمها.</p></section>
+        <section className={card}><div className="mb-3 flex items-center justify-between gap-3"><div><h2 className="font-extrabold">تنبيه المخزون</h2><p className="mt-1 text-xs text-gray-500">المنتجات التي يقل مخزونها عن 5 قطع</p></div><Link to="/admin/products?filter=low-stock" aria-label="عرض منتجات المخزون المنخفض" className="text-sm font-bold text-primary-dark">عرض الكل</Link></div>
+          {lowStock.length ? lowStock.slice(0,5).map(product=><div key={product.id} className="flex items-center justify-between gap-3 border-t py-3 text-sm"><span className="line-clamp-1">{product.name}</span><span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">{product.stock} قطع</span></div>) : <p className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-700">المخزون جيد، لا توجد منتجات منخفضة.</p>}
+        </section>
+      </div>
+    </section>
+  </div>
 }
 
 function UsersAdmin({ users, updateClient }) {
@@ -155,7 +181,16 @@ function OrdersAdmin({orders,setOrders}) {
   const [searchParams,setSearchParams]=useSearchParams()
   const filter=searchParams.get('filter')
   const visibleOrders=filter==='follow-up'?orders.filter(order=>!['delivered','cancelled'].includes(order.status)):orders
-  const update=(id,status)=>{const order=orders.find(item=>item.id===id);const next=orders.map(o=>o.id===id?{...o,status}:o);setOrders(next);localStorage.setItem('nour_orders',JSON.stringify(next));recordAudit({entity:order?.id||id,field:'حالة الطلب',oldValue:orderNames[order?.status]||order?.status,newValue:orderNames[status]});toast.success('تم تحديث حالة الطلب')}
+  const update=(id,status)=>{
+    const order=orders.find(item=>item.id===id)
+    const confirmedAt=status==='confirmed'?(order?.confirmedAt||new Date().toISOString().slice(0,10)):order?.confirmedAt
+    const invoiceNumber=status==='confirmed'?(order?.invoiceNumber||`INV-${id}`):order?.invoiceNumber
+    const next=orders.map(item=>item.id===id?{...item,status,...(confirmedAt?{confirmedAt}:{}),...(invoiceNumber?{invoiceNumber}:{})}:item)
+    setOrders(next)
+    localStorage.setItem('nour_orders',JSON.stringify(next))
+    recordAudit({entity:order?.id||id,field:'حالة الطلب',oldValue:orderNames[order?.status]||order?.status,newValue:orderNames[status]})
+    toast.success(status==='confirmed'?'تم تأكيد الطلب وإنشاء الفاتورة':'تم تحديث حالة الطلب')
+  }
   return <><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-extrabold">{filter==='follow-up'?'طلبات تحتاج متابعة':'إدارة الطلبات'}</h1>{filter&&<button onClick={()=>setSearchParams({})} className="rounded-lg border bg-white px-3 py-2 text-sm">عرض كل الطلبات</button>}</div><p className="mb-3 text-sm text-gray-500">عدد الطلبات: {visibleOrders.length}</p><div className="overflow-x-auto rounded-2xl bg-white shadow-soft"><table className="w-full min-w-[750px] text-right text-sm"><thead className="bg-gray-50"><tr>{['رقم الطلب','العميل','التاريخ','الإجمالي','الحالة'].map(x=><th className="p-4" key={x}>{x}</th>)}</tr></thead><tbody>{visibleOrders.map(o=><tr key={o.id} className="border-t"><td className="p-4 font-bold">{o.id}</td><td className="p-4">{o.clientName}</td><td className="p-4">{o.createdAt}</td><td className="p-4">{formatCurrency(o.total)}</td><td className="p-4"><select value={o.status} onChange={e=>update(o.id,e.target.value)} className="rounded-lg border p-2">{Object.entries(orderNames).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></td></tr>)}</tbody></table></div></>
 }
 

@@ -6,7 +6,7 @@ import AuthLayout from './layouts/AuthLayout'
 import { ChangePasswordPage, ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from './pages/auth/AuthPages'
 import CatalogPage from './pages/client/CatalogPage'
 import AdminPage from './pages/admin/AdminPage'
-import { CartPage, CheckoutPage, ComparePage, ExportPricesPage, FavoritesPage, OrdersPage, ProductDetailPage, ProfilePage } from './pages/client/ClientPages'
+import { CartPage, CheckoutPage, ExportPricesPage, FavoritesPage, InvoicePage, OrdersPage, ProductDetailPage, ProfilePage } from './pages/client/ClientPages'
 
 function RequireClient() {
   const { user } = useAuth()
@@ -50,9 +50,9 @@ export default function App() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/orders/:orderId/invoice" element={<InvoicePage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/favorites" element={<FavoritesPage />} />
-        <Route path="/compare" element={<ComparePage />} />
         <Route path="/export-prices" element={<ExportPricesPage />} />
       </Route>
     </Route>

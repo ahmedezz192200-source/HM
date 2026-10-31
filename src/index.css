@@ -17,3 +17,27 @@ body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, input, select, textarea { font: inherit; }
 button:disabled { cursor: not-allowed; }
 a { color: inherit; text-decoration: none; }
+
+@keyframes checkout-enter {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes checkout-logo {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+.checkout-enter { animation: checkout-enter 420ms ease-out both; }
+.checkout-logo { animation: checkout-logo 2.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .checkout-enter, .checkout-logo { animation: none; }
+}
+
+@media print {
+  body { min-width: 0; background: #fff; }
+  header, footer, .no-print { display: none !important; }
+  main { min-height: 0 !important; max-width: none !important; padding: 0 !important; }
+  main > section { max-width: none !important; border: 0 !important; box-shadow: none !important; }
+}

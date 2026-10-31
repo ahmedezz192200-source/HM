@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, FileDown, Minus, Plus, ShoppingBag, Trash2, UserRound } from 'lucide-react'
+import { CheckCircle2, ChevronLeft, ChevronRight, FileDown, Minus, Plus, Printer, ShoppingBag, Trash2, UserRound } from 'lucide-react'
 import { useCart } from '../../context/CartContext'
 import { usePricing } from '../../context/PricingContext'
 import { useAuth } from '../../context/AuthContext'
@@ -55,17 +55,46 @@ export function CheckoutPage() {
     localStorage.setItem('nour_orders', JSON.stringify([order,...orders]))
     clear(); addNotification(`طلب جديد من ${user.name}`, { audience: 'admin' }); toast.success('تم إرسال طلبك بنجاح'); navigate('/orders')
   }
-  return <section className="mx-auto max-w-2xl"><h1 className="mb-6 text-2xl font-extrabold">إتمام الطلب</h1><form onSubmit={submit} className="space-y-4 rounded-2xl bg-white p-6 shadow-soft">
-    <label className="block text-sm font-bold">عنوان التوصيل<textarea value={address} onChange={(e)=>setAddress(e.target.value)} rows="3" required className="mt-2 w-full rounded-xl border p-3 font-normal" placeholder="المدينة، المنطقة، الشارع، رقم العقار..." /></label>
-    <label className="block text-sm font-bold">ملاحظات إضافية (اختياري)<textarea value={notes} onChange={(e)=>setNotes(e.target.value)} rows="2" className="mt-2 w-full rounded-xl border p-3 font-normal" /></label>
-    <div className="flex justify-between border-t pt-4 font-bold"><span>الإجمالي</span><span>{formatCurrency(total)}</span></div><button className="w-full rounded-xl bg-primary p-3 font-bold text-white">تأكيد الطلب</button>
-  </form></section>
+  return <section className="checkout-enter mx-auto max-w-2xl">
+    <header className="mb-6 flex items-center gap-4 rounded-2xl bg-gradient-to-l from-primary/15 to-white p-5">
+      <img src={logoUrl} alt="شعار AM" className="checkout-logo h-16 w-16 object-contain" />
+      <div><p className="text-sm font-bold text-primary-dark">خطوة أخيرة</p><h1 className="mt-1 text-2xl font-extrabold">إتمام الطلب</h1><p className="mt-1 text-sm text-gray-500">أدخل عنوان التوصيل لمراجعة طلبك وإرساله.</p></div>
+    </header>
+    <div className="mb-4 flex items-center gap-3 text-sm text-gray-500"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">١</span><span className="font-bold text-ink">بيانات التوصيل</span><span className="h-px flex-1 bg-gray-200" /><span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">٢</span><span>تأكيد الطلب</span></div>
+    <form onSubmit={submit} className="space-y-4 rounded-2xl bg-white p-6 shadow-soft">
+      <label className="block text-sm font-bold">عنوان التوصيل<textarea value={address} onChange={(e)=>setAddress(e.target.value)} rows="3" required className="mt-2 w-full rounded-xl border p-3 font-normal" placeholder="المدينة، المنطقة، الشارع، رقم العقار..." /></label>
+      <label className="block text-sm font-bold">ملاحظات إضافية (اختياري)<textarea value={notes} onChange={(e)=>setNotes(e.target.value)} rows="2" className="mt-2 w-full rounded-xl border p-3 font-normal" /></label>
+      <div className="flex justify-between border-t pt-4 font-bold"><span>الإجمالي</span><span>{formatCurrency(total)}</span></div><button className="w-full rounded-xl bg-primary p-3 font-bold text-white transition hover:bg-primary-dark">تأكيد الطلب</button>
+    </form>
+  </section>
 }
 
 export function OrdersPage() {
   const { user } = useAuth()
   const orders = (JSON.parse(localStorage.getItem('nour_orders') || 'null') || mockOrders).filter((order) => order.clientId === user.id)
-  return <section><h1 className="mb-6 text-2xl font-extrabold">طلباتي</h1>{orders.length ? <div className="overflow-x-auto rounded-2xl bg-white shadow-soft"><table className="w-full text-right text-sm"><thead className="bg-gray-50"><tr>{['رقم الطلب','التاريخ','الحالة','الإجمالي','المنتجات'].map((x)=><th key={x} className="p-4">{x}</th>)}</tr></thead><tbody>{orders.map((order)=><tr key={order.id} className="border-t"><td className="p-4 font-bold">{order.id}</td><td className="p-4">{order.createdAt}</td><td className="p-4">{statuses[order.status] || order.status}</td><td className="p-4">{formatCurrency(order.total)}</td><td className="p-4">{order.items?.length || 0}</td></tr>)}</tbody></table></div> : <div className="rounded-xl bg-white p-10 text-center text-gray-500">لا توجد طلبات حتى الآن.</div>}</section>
+  return <section><h1 className="mb-6 text-2xl font-extrabold">طلباتي</h1>{orders.length ? <div className="overflow-x-auto rounded-2xl bg-white shadow-soft"><table className="w-full text-right text-sm"><thead className="bg-gray-50"><tr>{['رقم الطلب','التاريخ','الحالة','الإجمالي','المنتجات','الفاتورة'].map((x)=><th key={x} className="p-4">{x}</th>)}</tr></thead><tbody>{orders.map((order)=><tr key={order.id} className="border-t"><td className="p-4 font-bold">{order.id}</td><td className="p-4">{order.createdAt}</td><td className="p-4">{statuses[order.status] || order.status}</td><td className="p-4">{formatCurrency(order.total)}</td><td className="p-4">{order.items?.length || 0}</td><td className="p-4">{['confirmed','shipped','delivered'].includes(order.status) ? <Link className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-primary/10 px-3 py-2 font-bold text-primary-dark" to={`/orders/${order.id}/invoice`}><FileDown size={15}/>عرض الفاتورة</Link> : <span className="text-xs text-gray-400">بعد تأكيد الطلب</span>}</td></tr>)}</tbody></table></div> : <div className="rounded-xl bg-white p-10 text-center text-gray-500">لا توجد طلبات حتى الآن.</div>}</section>
+}
+
+export function InvoicePage() {
+  const { orderId } = useParams()
+  const { user } = useAuth()
+  const orders = JSON.parse(localStorage.getItem('nour_orders') || 'null') || mockOrders
+  const order = orders.find((item) => item.id === orderId && item.clientId === user.id)
+  const canInvoice = order && ['confirmed', 'shipped', 'delivered'].includes(order.status)
+  if (!canInvoice) return <section className="rounded-2xl bg-white p-10 text-center shadow-soft"><h1 className="text-xl font-bold">الفاتورة غير متاحة حالياً</h1><p className="mt-2 text-sm text-gray-500">ستظهر الفاتورة بعد تأكيد الطلب.</p><Link className="mt-5 inline-flex rounded-xl bg-primary px-5 py-3 font-bold text-white" to="/orders">العودة إلى طلباتي</Link></section>
+  const invoiceNumber = order.invoiceNumber || `INV-${order.id}`
+  const orderItems = order.items || []
+  return <section className="mx-auto max-w-3xl rounded-2xl bg-white p-6 shadow-soft sm:p-10">
+    <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3"><Link to="/orders" className="text-sm font-bold text-primary-dark">العودة إلى الطلبات</Link><button onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-bold text-white"><Printer size={17}/>طباعة / حفظ PDF</button></div>
+    <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-6">
+      <div className="flex items-center gap-3"><img src={logoUrl} alt="شعار AM" className="h-16 w-16 object-contain"/><div><h1 className="text-2xl font-extrabold">فاتورة مبيعات</h1><p className="mt-1 text-sm text-gray-500">H&amp;M Cosmatic.com</p></div></div>
+      <div className="text-sm"><p><span className="text-gray-500">رقم الفاتورة:</span> <b>{invoiceNumber}</b></p><p className="mt-1"><span className="text-gray-500">التاريخ:</span> {order.confirmedAt || order.createdAt}</p></div>
+    </div>
+    <div className="grid gap-4 border-b py-5 text-sm sm:grid-cols-2"><div><p className="text-gray-500">فاتورة إلى</p><p className="mt-1 font-bold">{order.clientName || user.name}</p><p className="mt-1">{order.address || '—'}</p></div><div><p className="text-gray-500">حالة الطلب</p><p className="mt-1 inline-flex items-center gap-1 font-bold text-emerald-700"><CheckCircle2 size={16}/>{statuses[order.status] || order.status}</p><p className="mt-1 text-gray-500">رقم الطلب: {order.id}</p></div></div>
+    <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[480px] text-right text-sm"><thead className="bg-gray-50"><tr>{['المنتج','الكمية','سعر الوحدة','الإجمالي'].map((label)=><th key={label} className="p-3">{label}</th>)}</tr></thead><tbody>{orderItems.map((item,index)=><tr key={`${item.productId||item.name}-${index}`} className="border-t"><td className="p-3 font-semibold">{item.name}</td><td className="p-3">{item.quantity}</td><td className="p-3">{formatCurrency(item.unitPrice)}</td><td className="p-3">{formatCurrency(Number(item.unitPrice||0)*Number(item.quantity||0))}</td></tr>)}</tbody></table></div>
+    <div className="mt-5 flex justify-end"><div className="w-full max-w-xs border-t pt-4"><div className="flex justify-between text-sm"><span>الإجمالي قبل الضريبة</span><span>{formatCurrency(order.total)}</span></div><div className="mt-2 flex justify-between text-sm"><span>الضريبة</span><span>{formatCurrency(0)}</span></div><div className="mt-3 flex justify-between border-t pt-3 text-lg font-extrabold"><span>الإجمالي المستحق</span><span>{formatCurrency(order.total)}</span></div></div></div>
+    <p className="mt-8 border-t pt-4 text-center text-sm text-gray-500">شكراً لثقتكم بنا</p>
+  </section>
 }
 
 export function ProfilePage() {
@@ -86,28 +115,23 @@ export function FavoritesPage() {
 export function ProductDetailPage() {
   const { productId }=useParams()
   const [imageIndex,setImageIndex]=useState(0)
+  useEffect(() => { window.scrollTo(0, 0) }, [productId])
   const {data:seed=[],isLoading}=useQuery({queryKey:['products'],queryFn:mockApi.products})
   const product=getProducts(seed).find(item=>item.id===productId&&item.published)
   const {getPrice}=usePricing()
   const {add}=useCart()
   if(isLoading)return <div className="h-96 animate-pulse rounded-2xl bg-gray-200"/>
   if(!product)return <div className="rounded-xl bg-white p-10 text-center">المنتج غير موجود. <Link className="text-primary-dark" to="/">العودة للمنتجات</Link></div>
-  return <section className="grid gap-7 rounded-2xl bg-white p-5 shadow-soft md:grid-cols-2 md:p-8">
-    <div className="relative mx-auto aspect-square w-full max-w-[420px] overflow-hidden rounded-2xl bg-gray-50">
-      <ProductImage src={product.images[imageIndex]} alt={product.name} className="h-full w-full object-contain p-4"/>
-      {product.images.length>1&&<><button onClick={()=>setImageIndex((imageIndex+product.images.length-1)%product.images.length)} aria-label="الصورة السابقة" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow"><ChevronRight size={20}/></button><button onClick={()=>setImageIndex((imageIndex+1)%product.images.length)} aria-label="الصورة التالية" className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow"><ChevronLeft size={20}/></button><div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1">{product.images.map((image,index)=><button key={image} aria-label={`الصورة ${index+1}`} onClick={()=>setImageIndex(index)} className={`h-2 w-2 rounded-full ${index===imageIndex?'bg-primary':'bg-white'}`}/>)}</div></>}
-    </div>
-    <div className="flex flex-col justify-center"><p className="text-sm font-bold text-primary">{product.category}</p><h1 className="mt-2 text-3xl font-extrabold">{product.name}</h1><p className="mt-4 leading-8 text-gray-600">{product.description}</p><div className="mt-6 space-y-2"><p className="text-xl font-extrabold">{formatCurrency(getPrice(product))} <span className="text-sm font-normal text-gray-500">سعر القطعة</span></p><p className="text-sm text-gray-500">{formatCurrency(product.consumerPrice)} سعر المستهلك</p></div><p className={`mt-4 text-sm ${product.stock!==null&&product.stock<5?'text-amber-700':'text-emerald-700'}`}>{getStockLabel(product)}</p><button disabled={isOutOfStock(product)} onClick={()=>{add(product);toast.success('تمت إضافة المنتج إلى السلة')}} className="mt-6 rounded-xl bg-primary px-5 py-3 font-bold text-white hover:bg-primary-dark disabled:bg-gray-300">أضف إلى السلة</button></div>
-  </section>
-}
-
-export function ComparePage() {
-  const [ids, setIds] = useState(()=>JSON.parse(localStorage.getItem('nour_compare') || '[]'))
-  const {data:seed=[]}=useQuery({queryKey:['products'],queryFn:mockApi.products})
-  const products = getProducts(seed).filter((item)=>item.published&&ids.includes(item.id))
-  const { getPrice }=usePricing()
-  const remove=(id)=>{const next=ids.filter((item)=>item!==id);setIds(next);localStorage.setItem('nour_compare',JSON.stringify(next))}
-  return <section><h1 className="mb-6 text-2xl font-extrabold">مقارنة المنتجات</h1>{products.length ? <div className="overflow-x-auto rounded-2xl bg-white shadow-soft"><table className="w-full min-w-[600px] text-right text-sm"><tbody>{[['المنتج',...products.map(p=>p.name)],['التصنيف',...products.map(p=>p.category)],['سعر القطعة',...products.map(p=>formatCurrency(getPrice(p)))],['سعر المستهلك',...products.map(p=>formatCurrency(p.consumerPrice))],['المخزون',...products.map(getStockLabel)]].map(([label,...cells])=><tr key={label} className="border-b"><th className="bg-gray-50 p-4">{label}</th>{cells.map((cell,i)=><td className="p-4" key={i}>{cell}</td>)}</tr>)}</tbody></table><div className="flex gap-2 p-4">{products.map(p=><button key={p.id} onClick={()=>remove(p.id)} className="rounded-lg border px-3 py-2 text-xs">إزالة {p.name}</button>)}</div></div>:<p className="rounded-xl bg-white p-8 text-center text-gray-500">اختر منتجات من صفحة المنتجات لمقارنتها (حتى 4 منتجات).</p>}</section>
+  return <div className="space-y-6">
+    <section className="grid gap-7 rounded-2xl bg-white p-5 shadow-soft md:grid-cols-2 md:p-8">
+      <div className="relative mx-auto aspect-square w-full max-w-[420px] overflow-hidden rounded-2xl bg-gray-50">
+        <ProductImage src={product.images[imageIndex]} alt={product.name} className="h-full w-full object-contain p-4"/>
+        {product.images.length>1&&<><button onClick={()=>setImageIndex((imageIndex+product.images.length-1)%product.images.length)} aria-label="الصورة السابقة" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow"><ChevronRight size={20}/></button><button onClick={()=>setImageIndex((imageIndex+1)%product.images.length)} aria-label="الصورة التالية" className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow"><ChevronLeft size={20}/></button><div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1">{product.images.map((image,index)=><button key={image} aria-label={`الصورة ${index+1}`} onClick={()=>setImageIndex(index)} className={`h-2 w-2 rounded-full ${index===imageIndex?'bg-primary':'bg-white'}`}/>)}</div></>}
+      </div>
+      <div className="flex flex-col justify-center"><p className="text-sm font-bold text-primary">{product.category}</p><h1 className="mt-2 text-3xl font-extrabold">{product.name}</h1><div className="mt-6 space-y-2"><p className="text-xl font-extrabold">{formatCurrency(getPrice(product))} <span className="text-sm font-normal text-gray-500">سعر القطعة</span></p><p className="text-sm text-gray-500">{formatCurrency(product.consumerPrice)} سعر المستهلك</p></div><p className={`mt-4 text-sm ${product.stock!==null&&product.stock<5?'text-amber-700':'text-emerald-700'}`}>{getStockLabel(product)}</p><button disabled={isOutOfStock(product)} onClick={()=>{add(product);toast.success('تمت إضافة المنتج إلى السلة')}} className="mt-6 rounded-xl bg-primary px-5 py-3 font-bold text-white hover:bg-primary-dark disabled:bg-gray-300">أضف إلى السلة</button></div>
+    </section>
+    <section className="rounded-2xl bg-white p-6 shadow-soft sm:p-8"><h2 className="text-lg font-extrabold">وصف المنتج</h2><p className="mt-4 whitespace-pre-line text-sm leading-8 text-gray-600">{product.description || product.shortDescription || 'لا يتوفر وصف إضافي لهذا المنتج.'}</p></section>
+  </div>
 }
 
 export function ExportPricesPage() {
