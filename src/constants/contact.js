@@ -1,0 +1,7 @@
+export const CONTACT_PHONE = '+20 10 6630 6608'
+export const CONTACT_PHONE_LINK = '+201066306608'
+export const WHATSAPP_NUMBER = '201066306608'
+export const CONTACT_EMAIL = 'Ahmedellord010033@gmail.com'
+export const CONTACT_ADDRESS = 'بلطس، الشارع اللي جوار بركة حلوات، الفيوم، مصر'
+export const BUSINESS_DESCRIPTION = 'For Accessories and pharmacy supplies'
+export const FACEBOOK_URL = 'https://www.facebook.com/HM.pharmacysupplies?locale=ar_AR'

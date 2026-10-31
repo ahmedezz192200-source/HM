@@ -14,6 +14,7 @@ import ProductImage from '../../components/shared/ProductImage'
 import toast from 'react-hot-toast'
 import logoUrl from '../../assets/Turquoise Circular AM Monogram.png'
 import { getStockLabel, isOutOfStock } from '../../utils/inventory'
+import { WHATSAPP_NUMBER } from '../../constants/contact'
 
 const statuses = { pending:'قيد المراجعة', confirmed:'تم التأكيد', shipped:'تم الشحن', delivered:'تم التسليم', cancelled:'ملغي' }
 const getProducts = (seed = []) => {
@@ -100,7 +101,7 @@ export function InvoicePage() {
 export function ProfilePage() {
   const { user } = useAuth()
   return <section className="mx-auto max-w-2xl"><h1 className="mb-6 text-2xl font-extrabold">الملف الشخصي</h1><div className="rounded-2xl bg-white p-6 shadow-soft"><div className="mb-5 flex items-center gap-3"><div className="rounded-full bg-primary/10 p-3 text-primary"><UserRound /></div><div><h2 className="font-bold">{user.name}</h2><p className="text-sm text-gray-500">{user.email}</p></div></div><dl className="grid gap-4 border-t pt-4 text-sm sm:grid-cols-2"><div><dt className="text-gray-500">رقم الهاتف</dt><dd className="mt-1 font-semibold">{user.phone}</dd></div><div><dt className="text-gray-500">تسعير مخصص لنشاطك</dt><dd className="mt-1 font-semibold">يتم تحديثه بواسطة الإدارة</dd></div></dl>
-    <div className="mt-6 flex flex-wrap gap-2"><a href="https://wa.me/201000000000?text=%D8%A3%D8%B1%D8%AC%D9%88%20%D8%AA%D8%BA%D9%8A%D9%8A%D8%B1%20%D8%A7%D9%84%D8%B4%D8%B1%D9%8A%D8%AD%D8%A9%20%D8%A7%D9%84%D8%B3%D8%B9%D8%B1%D9%8A%D8%A9" target="_blank" rel="noreferrer" className="inline-flex rounded-xl border border-primary px-4 py-2.5 text-sm font-bold text-primary-dark">تواصل عبر واتساب لتغيير الشريحة</a><Link to="/export-prices" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white"><FileDown size={16}/>تصدير قائمة الأسعار</Link></div>
+    <div className="mt-6 flex flex-wrap gap-2"><a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('أرجو تغيير الشريحة السعرية')}`} target="_blank" rel="noreferrer" className="inline-flex rounded-xl border border-primary px-4 py-2.5 text-sm font-bold text-primary-dark">تواصل عبر واتساب لتغيير الشريحة</a><Link to="/export-prices" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white"><FileDown size={16}/>تصدير قائمة الأسعار</Link></div>
   </div></section>
 }
 
