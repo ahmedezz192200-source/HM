@@ -139,34 +139,130 @@ export function ExportPricesPage() {
   const { user }=useAuth()
   const { getPrice }=usePricing()
   const {data:seed=[],isLoading}=useQuery({queryKey:['products'],queryFn:mockApi.products})
+  const [exportingPdf,setExportingPdf]=useState(false)
+  const [pdfProgress,setPdfProgress]=useState(0)
+  const [pdfDownloadUrl,setPdfDownloadUrl]=useState(null)
+  useEffect(()=>()=>{if(pdfDownloadUrl)URL.revokeObjectURL(pdfDownloadUrl)},[pdfDownloadUrl])
   const products=getProducts(seed).filter((product)=>product.published)
   const exportExcel=async()=>{
     const XLSX=await import('xlsx')
     const ws=XLSX.utils.aoa_to_sheet([
-      ['نور | قائمة أسعار الأعمال'],
-      [`الشركة: ${user.name}`],
+      ['H&M Cosmatic.com | قائمة الأسعار'],
+      [`اسم الشركة: ${user.name}`],
       [`التاريخ: ${new Date().toLocaleDateString('ar-EG')}`],
-      ['SKU','المنتج','سعر القطعة (ج.م)','سعر المستهلك (ج.م)','الوحدة'],
+      ['رمز المنتج SKU','اسم المنتج','سعر القطعة (ج.م)','سعر المستهلك (ج.م)','الوحدة'],
       ...products.map(p=>[p.sku,p.name,getPrice(p),p.consumerPrice,p.unit]),
     ])
     ws['!views']=[{rightToLeft:true}]
-    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'قائمة الأسعار');XLSX.writeFile(wb,'nour-price-list.xlsx')
+    ws['!cols']=[{wch:18},{wch:54},{wch:20},{wch:23},{wch:14}]
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'قائمة الأسعار');XLSX.writeFile(wb,'HM-price-list.xlsx')
   }
   const exportPdf=async()=>{
+    setExportingPdf(true)
+    setPdfProgress(0)
+    setPdfDownloadUrl(null)
     try{
-      const [{default:jsPDF},{default:autoTable}]=await Promise.all([import('jspdf'),import('jspdf-autotable')])
-      const doc=new jsPDF()
+      const {default:jsPDF}=await import('jspdf')
+      if(products.length===0){
+        toast.error('لا توجد منتجات متاحة لتصديرها.')
+        return
+      }
+      await document.fonts.ready
+      const pageSize=48
+      const pageCount=Math.ceil(products.length/pageSize)
+      const date=new Intl.DateTimeFormat('ar-EG').format(new Date())
+      const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true})
+      const canvas=document.createElement('canvas')
+      canvas.width=840
+      canvas.height=594
+      const context=canvas.getContext('2d')
+      if(!context)throw new Error('Canvas 2D context is unavailable')
+      context.scale(canvas.width/1122,canvas.height/794)
       const logo=new Image()
       logo.src=logoUrl
-      await new Promise((resolve,reject)=>{logo.onload=resolve;logo.onerror=reject})
-      const canvas=document.createElement('canvas');canvas.width=logo.naturalWidth;canvas.height=logo.naturalHeight
-      canvas.getContext('2d').drawImage(logo,0,0)
-      doc.addImage(canvas.toDataURL('image/png'),'PNG',14,9,18,18)
-      doc.setFontSize(16);doc.text('Nour - Business Price List',14,34)
-      doc.setFontSize(10);doc.text(`${user.name} | ${new Date().toLocaleDateString('en-GB')}`,14,41)
-      autoTable(doc,{startY:47,head:[['SKU','Product','Unit price (EGP)','Consumer price (EGP)']],body:products.map(p=>[p.sku,p.name,getPrice(p),p.consumerPrice])})
-      doc.save('nour-price-list.pdf')
+      if(!logo.complete)await new Promise((resolve,reject)=>{
+        logo.onload=resolve
+        logo.onerror=reject
+      })
+      if(!logo.naturalWidth)throw new Error('The company logo could not be loaded')
+      const headers=['رمز المنتج SKU','اسم المنتج','سعر القطعة (ج.م)','سعر المستهلك (ج.م)','الوحدة']
+      const columns=[0.12,0.44,0.16,0.18,0.10]
+      const numberFormat=new Intl.NumberFormat('ar-EG',{maximumFractionDigits:2})
+
+      for(let pageIndex=0;pageIndex<pageCount;pageIndex+=1){
+        context.fillStyle='#ffffff'
+        context.fillRect(0,0,canvas.width,canvas.height)
+        context.direction='rtl'
+        context.textBaseline='middle'
+        context.drawImage(logo,1022,20,62,62)
+        context.textAlign='right'
+        context.fillStyle='#1f2937'
+        context.font='800 25px Cairo, Arial, sans-serif'
+        context.fillText('قائمة أسعار المنتجات',990,43,920)
+        context.fillStyle='#4b5563'
+        context.font='400 13px Cairo, Arial, sans-serif'
+        context.fillText(`الشركة: ${user.name}    |    التاريخ: ${date}`,990,68,920)
+        context.fillStyle='#3DBABF'
+        context.fillRect(34,99,1054,2)
+
+        const tableTop=106
+        const headerHeight=28
+        const rowHeight=12.8
+        let right=1088
+        context.font='700 11px Cairo, Arial, sans-serif'
+        headers.forEach((label,columnIndex)=>{
+          const width=1054*columns[columnIndex]
+          const left=right-width
+          context.fillStyle='#2C9A9F'
+          context.fillRect(left,tableTop,width,headerHeight)
+          context.strokeStyle='#25888c'
+          context.strokeRect(left,tableTop,width,headerHeight)
+          context.fillStyle='#ffffff'
+          context.textAlign=columnIndex===0?'center':'right'
+          context.fillText(label,columnIndex===0?left+width/2:right-6,tableTop+headerHeight/2,width-12)
+          right=left
+        })
+
+        const pageProducts=products.slice(pageIndex*pageSize,(pageIndex+1)*pageSize)
+        pageProducts.forEach((product,rowIndex)=>{
+          const top=tableTop+headerHeight+rowIndex*rowHeight
+          const values=[product.sku,product.name,numberFormat.format(getPrice(product)),numberFormat.format(product.consumerPrice),product.unit||'قطعة']
+          let cellRight=1088
+          values.forEach((value,columnIndex)=>{
+            const width=1054*columns[columnIndex]
+            const left=cellRight-width
+            context.fillStyle=rowIndex%2?'#f8fafc':'#ffffff'
+            context.fillRect(left,top,width,rowHeight)
+            context.strokeStyle='#e5e7eb'
+            context.strokeRect(left,top,width,rowHeight)
+            context.fillStyle='#1f2937'
+            context.font='400 11px Cairo, Arial, sans-serif'
+            context.textAlign=columnIndex===0?'center':'right'
+            context.fillText(String(value??''),columnIndex===0?left+width/2:cellRight-6,top+rowHeight/2,width-12)
+            cellRight=left
+          })
+        })
+
+        context.strokeStyle='#e5e7eb'
+        context.beginPath()
+        context.moveTo(34,760)
+        context.lineTo(1088,760)
+        context.stroke()
+        context.fillStyle='#6b7280'
+        context.font='400 11px Cairo, Arial, sans-serif'
+        context.textAlign='center'
+        context.fillText(`H&M Cosmatic.com    •    صفحة ${pageIndex+1} من ${pageCount}`,561,778)
+
+        if(pageIndex>0)doc.addPage()
+        doc.addImage(canvas.toDataURL('image/jpeg',0.82),'JPEG',0,0,297,210,undefined,'FAST')
+        setPdfProgress(Math.round(((pageIndex+1)/pageCount)*100))
+        if((pageIndex+1)%5===0||pageIndex===pageCount-1)await new Promise(resolve=>setTimeout(resolve,0))
+      }
+      const pdfUrl=URL.createObjectURL(doc.output('blob'))
+      setPdfDownloadUrl(pdfUrl)
+      toast.success('تم تجهيز ملف PDF. اضغط على رابط التنزيل لحفظه.')
     }catch(error){console.error(error);toast.error('تعذر إنشاء ملف PDF. حاول مرة أخرى.')}
+    finally{setExportingPdf(false);setPdfProgress(0)}
   }
-  return <section className="mx-auto max-w-3xl"><h1 className="mb-3 text-2xl font-extrabold">تصدير قائمة الأسعار</h1><p className="mb-6 text-sm text-gray-500">ستتضمن القائمة الأسعار الخاصة بحسابك فقط واسم الشركة والتاريخ.</p><div className="flex flex-wrap gap-3"><button disabled={isLoading} onClick={exportExcel} className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 font-bold text-white disabled:opacity-50"><FileDown size={18}/>تصدير Excel</button><button disabled={isLoading} onClick={exportPdf} className="flex items-center gap-2 rounded-xl border bg-white px-5 py-3 font-bold disabled:opacity-50"><FileDown size={18}/>تصدير PDF</button></div></section>
+  return <section className="mx-auto max-w-3xl"><h1 className="mb-3 text-2xl font-extrabold">تصدير قائمة الأسعار</h1><p className="mb-6 text-sm text-gray-500">ستتضمن القائمة الأسعار الخاصة بحسابك فقط واسم الشركة والتاريخ. يدعم الملف العربي واتجاه الكتابة من اليمين إلى اليسار.</p><div className="flex flex-wrap gap-3"><button disabled={isLoading} onClick={exportExcel} className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 font-bold text-white disabled:opacity-50"><FileDown size={18}/>تصدير Excel</button><button disabled={isLoading||exportingPdf} onClick={exportPdf} className="flex items-center gap-2 rounded-xl border bg-white px-5 py-3 font-bold disabled:opacity-50"><FileDown size={18}/>{exportingPdf?`جارٍ تجهيز PDF (${pdfProgress}%)`:'تصدير PDF'}</button>{pdfDownloadUrl&&<a href={pdfDownloadUrl} download="HM-price-list.pdf" className="flex items-center gap-2 rounded-xl bg-primary-dark px-5 py-3 font-bold text-white"><FileDown size={18}/>تنزيل قائمة الأسعار PDF</a>}</div>{exportingPdf&&<p role="status" className="mt-3 text-sm text-gray-600">يتم تجهيز قائمة الأسعار، لا تغلق الصفحة حتى يكتمل التجهيز.</p>}</section>
 }

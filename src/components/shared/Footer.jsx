@@ -8,6 +8,7 @@ import {
   CONTACT_PHONE,
   CONTACT_PHONE_LINK,
   FACEBOOK_URL,
+  WHATSAPP_CHANNEL_URL,
 } from '../../constants/contact'
 
 export default function Footer() {
@@ -23,7 +24,7 @@ export default function Footer() {
           <a href={`https://maps.google.com/?q=${encodeURIComponent(CONTACT_ADDRESS)}`} target="_blank" rel="noreferrer" className="flex items-start gap-2"><MapPin className="mt-1 shrink-0" size={16} /> <span>{CONTACT_ADDRESS}</span></a>
           <p className="flex items-center gap-2 text-emerald-700"><Clock3 size={16} /> مفتوح دائمًا</p>
         </div>
-        <div className="mt-4"><h4 className="mb-2 text-sm font-bold">تابعنا</h4><a href={FACEBOOK_URL} aria-label="Facebook" target="_blank" rel="noreferrer" className="inline-flex text-primary"><Facebook /></a></div>
+        <div className="mt-4"><h4 className="mb-2 text-sm font-bold">تابعنا</h4><div className="flex flex-wrap gap-3"><a href={FACEBOOK_URL} aria-label="Facebook" target="_blank" rel="noreferrer" className="inline-flex text-primary"><Facebook /></a><a href={WHATSAPP_CHANNEL_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-bold text-emerald-700 hover:bg-emerald-100"><span aria-hidden="true">◉</span>قناة واتساب</a></div></div>
       </div>
     </div>
     <div className="border-t py-4 text-center text-xs text-gray-400">© {new Date().getFullYear()} HM. جميع الحقوق محفوظة.</div>
